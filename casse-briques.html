@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<title>Casse-briques</title>
+</head>
+
+<body>
+
+<canvas id="canvas" width="480" height="320"></canvas>
+
+
+
+<style>
+*, ::after, ::before{ 
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+canvas{
+    background-color : black;
+    display: block; 
+    margin: 0 auto;
+}
+</style>
+
+
+<script>
+// Obtenir une référence au canvas
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+
+const explosion = new Audio('sons/scream3.mp3');
+const perdu = new Audio('sons/scream3.mp3');
+const color = ["green", "violet", "blue", "yellow", "red", "pink", "white"];
+
+// Placement initial
+var x = Math.floor(Math.random() * 480);
+var y = canvas.height-30;
+
+//Vitesse de déplacement de la balle
+var dx = 2;
+var dy = -2;
+
+// paramètre de la raquette
+var paddleHeight = 10;
+var paddleWidth = 75;
+var paddleX = (canvas.width-paddleWidth) / 2;
+
+var ballRayon = 10;
+
+// initialiser les touches droite et gauche
+var rightPressed = false;
+var leftPressed = false;
+
+// Configuration des variables des briques
+var brickRowCount = 4;
+var brickColumnCount = 6;
+var brickWidth = 71;
+var brickHeight = 20;
+var brickPadding = 5;
+var brickOffsetTop = 30;
+var brickOffsetLeft = 10;
+
+var score = 0;
+
+var bricks = [];
+for(var c=0; c<brickColumnCount; c++) {
+    bricks[c] = [];
+    for(var r=0; r<brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status : 1 };
+    }
+}
+
+//On définit les écouteurs, il doit écouter les touches
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+document.addEventListener("mousemove", mouseMoveHandler, false);
+
+function keyDownHandler(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+        rightPressed = true;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+        leftPressed = true;
+    }
+}
+
+function keyUpHandler(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+        rightPressed = false;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+        leftPressed = false;
+    }
+}
+
+function mouseMoveHandler(e) {
+    var relativeX = e.clientX - canvas.offsetLeft;
+    if(relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth/2;
+    }
+}
+
+function drawScore() {
+    ctx.font = "16px Arial";
+    ctx.fillText("Score: "+score, 8, 20);
+}
+
+function collisionDetection() {
+    for(var c=0; c<brickColumnCount; c++) {
+        for(var r=0; r<brickRowCount; r++) {
+            var b = bricks[c][r];
+            if(b.status == 1) {
+                if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                    dy = (-dy)*1.05;
+                    b.status = 0;
+					explosion.play();
+					score++;
+					ctx.fillStyle = color[Math.floor(Math.random() * color.length)];
+					if(score == brickRowCount*brickColumnCount) {
+                        alert("C'est gagné, Bravo!");
+                        document.location.reload();
+                        clearInterval(interval); // Needed for Chrome to end game
+                    }
+					
+                }
+            }
+        }
+    }
+}
+
+// initialisation du mur de brique
+function drawBricks() {
+    for(var c=0; c<brickColumnCount; c++) {
+        for(var r=0; r<brickRowCount; r++) {
+            if(bricks[c][r].status == 1) {
+                var brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+                var brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+                bricks[c][r].x = brickX;
+                bricks[c][r].y = brickY;
+                ctx.beginPath();
+                ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+    }
+}
+
+function drawBall(){
+// Dessiner un disque plein
+ctx.beginPath();
+ctx.arc(x, y, ballRayon, 0, Math.PI*2, true);
+ctx.fill();
+ctx.closePath();
+}
+
+function drawPaddle() {
+    ctx.beginPath();
+    ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function draw(){
+ctx.clearRect(0, 0, canvas.width, canvas.height);// Permet de supprimer un rectangle dans canvas
+drawBricks();
+drawBall();
+drawPaddle();
+drawScore();
+collisionDetection();
+
+
+	if(x + dx > canvas.width - ballRayon || x + dx < ballRayon) {
+    dx = -dx;
+	}
+
+	if(y + dy < ballRayon) {
+    dy = -dy;
+	} 
+		else if(y + dy > canvas.height - ballRayon){
+			if(x > paddleX && x < paddleX + paddleWidth) {
+			dy = -dy;
+			}
+			else{
+				alert=("GAME OVER !");
+				document.location.reload();
+				clearInterval(interval);
+			}
+		}
+	
+	
+	if(rightPressed) {
+        paddleX += 7;
+        if (paddleX + paddleWidth > canvas.width){
+            paddleX = canvas.width - paddleWidth;
+        }
+    }
+	else if(leftPressed) {
+    paddleX -= 7;
+		if(paddleX < 0){
+		paddleX = 0;
+		}
+}
+    x+=dx;
+    y+=dy;
+
+
+
+
+}
+	
+
+var interval = setInterval(draw, 10); // permet de répeter la fonction draw en boucle toutes les 10ms.
+
+</script>
+
+</body>
+
+</html>

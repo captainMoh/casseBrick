@@ -7,7 +7,7 @@
 
 <body>
 
-<canvas id="canvas" width="480" height="320"></canvas>
+<canvas id="canvas"></canvas>
 
 
 
@@ -18,10 +18,15 @@
     box-sizing: border-box;
 }
 
+body {
+    width: 100%;
+    min-height: 100%;
+    background-color: aqua;
+    overflow: hidden;
+}
+
 canvas{
     background-color : black;
-    display: block; 
-    margin: 0 auto;
 }
 </style>
 
@@ -31,12 +36,18 @@ canvas{
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
+// taille du canvas
+canvas.width = document.documentElement.clientWidth;
+canvas.height = document.documentElement.clientHeight * 0.75;
+
+console.log(canvas.width);
+
 const explosion = new Audio('sons/scream3.mp3');
 const perdu = new Audio('sons/scream3.mp3');
 const color = ["green", "violet", "blue", "yellow", "red", "pink", "white"];
 
 // Placement initial
-var x = Math.floor(Math.random() * 480);
+var x = Math.floor(Math.random() * canvas.width);
 var y = canvas.height-30;
 
 //Vitesse de déplacement de la balle
@@ -45,7 +56,7 @@ var dy = -2;
 
 // paramètre de la raquette
 var paddleHeight = 10;
-var paddleWidth = 75;
+var paddleWidth = canvas.width / 7;
 var paddleX = (canvas.width-paddleWidth) / 2;
 
 var ballRayon = 10;
@@ -55,11 +66,12 @@ var rightPressed = false;
 var leftPressed = false;
 
 // Configuration des variables des briques
-var brickRowCount = 4;
-var brickColumnCount = 6;
-var brickWidth = 71;
+var brickRowCount = 5;
+var brickColumnCount = Math.floor((canvas.width - 10) / 110);
+console.log(canvas.width-20, brickColumnCount);
+var brickWidth = 100;
 var brickHeight = 20;
-var brickPadding = 5;
+var brickPadding = 10;
 var brickOffsetTop = 30;
 var brickOffsetLeft = 10;
 
@@ -76,7 +88,8 @@ for(var c=0; c<brickColumnCount; c++) {
 //On définit les écouteurs, il doit écouter les touches
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
-document.addEventListener("mousemove", mouseMoveHandler, false);
+document.addEventListener("mousemove", mouseMoveHandler);
+document.addEventListener("touchmove", touchMove);
 
 function keyDownHandler(e) {
     if(e.key == "Right" || e.key == "ArrowRight") {
@@ -99,8 +112,18 @@ function keyUpHandler(e) {
 function mouseMoveHandler(e) {
     var relativeX = e.clientX - canvas.offsetLeft;
     if(relativeX > 0 && relativeX < canvas.width) {
-        paddleX = relativeX - paddleWidth/2;
+        paddleX = relativeX - paddleWidth / 2;
+        if(paddleX < 0) paddleX = 0
+        else if(paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth
     }
+}
+
+function touchMove(e) {
+    
+    let positionX = e.changedTouches[0].clientX;
+    paddleX = positionX - paddleWidth / 2
+    if(paddleX < 0) paddleX = 0
+        else if(paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth
 }
 
 function drawScore() {
@@ -116,7 +139,7 @@ function collisionDetection() {
                 if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
                     dy = (-dy)*1.05;
                     b.status = 0;
-					explosion.play();
+					//explosion.play();
 					score++;
 					ctx.fillStyle = color[Math.floor(Math.random() * color.length)];
 					if(score == brickRowCount*brickColumnCount) {
